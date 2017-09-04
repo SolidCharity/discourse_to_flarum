@@ -207,7 +207,7 @@ function getKey($orginal) {
 	return findFirstArg($orginal, array("?", "+", "-", "*"));
 }
 // Returns the new value, depends on the syntax elements
-function getValue($orginal, $imporDbConnection, $row) {
+function getValue($orginal, $importDbConnection, $row) {
 	$value = findValue($orginal, $importDbConnection, $row);
 
 	// Increments the value by one if the syntax elements in the configuration want to have that
@@ -271,8 +271,8 @@ function formatText($connection, $text) {
 	$text = str_replace("&quot;","\"",$text);
 	$text = preg_replace('|[[\/\!]*?[^\[\]]*?]|si', '', $text);
 	$text = trimSmileys($text);
-        $text = fixUserLinks($text);
-	$text = fixCodeHighlighting($text);
+	$text = fixUserLinks($text);
+	#$text = fixCodeHighlighting($text);
 	// Wrap text lines with paragraph tags
 	$explodedText = explode("\n", $text);
 	foreach ($explodedText as $key => $value) {
@@ -342,7 +342,6 @@ function fixUserLinks($post) {
 			$count++;
 			if($count == 1) {
 				$result = $split;
-				echo "set";
 			continue;
 			}
 
@@ -364,5 +363,45 @@ function fixUserLinks($post) {
 
 }
 
+// Returns the length of the user-name by the given text
+function getLengthOfUsername($username) {
+	$count = 0;
+	$length = strlen($username);
+
+	//Count until there is an invalid character in the text
+	for ($i=0; $i<$length; $i++) {
+		$chr = $username[$i];
+		if ($chr >= 'a' && $chr <= 'z' || $chr >= 'A' && $chr <= 'Z' || $chr >= '0' && $chr <= '9' || $chr == '_') {
+			$count++;
+		} else {
+			break;
+		}
+	}
+	return $count;
+}
+
+// This function will replace the code highlighting from the old forum format to the new one
+function fixCodeHighlighting($post) {
+	// For single line markdowns
+	$post = preg_replace("/<code(.*?)>/is", "<C><s>`</s>", $post);
+  $post = str_replace("</code>", "<e>`</e></C>", $post);
+
+	// For code blocks with multiple line
+	$array = explode("```", $post);
+	$count = 0;
+	$result = "";
+	foreach ($array as $split) {
+		try {
+			if ($count == 0 || $count + 1 == sizeof($array)) {
+				$result = "$result$split";
+				continue;
+			}
+			$result = "$result<CODE><s>```</s>$split<e>```</e></CODE>";
+		} finally {
+			$count++;
+		}
+	}
+	return $result;
+}
 
 ?>
