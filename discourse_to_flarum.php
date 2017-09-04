@@ -120,7 +120,7 @@ function copyItemsToExportDatabase($connections, $step_count, $old_table_name, $
 	}
 	$sql_back = " FROM $old_table_name";
 	$sql_req = $sql_base.$sql_keys.$sql_back;
-	echo "Requesting: $sql_req \n";
+	echo "Exporting: $sql_req \n";
 
 	// Run generated sql-command
 	$result = pg_query($connections->export, $sql_req);
@@ -155,18 +155,22 @@ function copyItemsToExportDatabase($connections, $step_count, $old_table_name, $
 
 			$insert_list = "";
 			$counter = 0;
+			print_r($convert_data);
 			foreach ($convert_data as $key => $value) {
 				if ($counter != 0) {
 					$insert_list = "$insert_list, ";
 				}
 
 				$new_data_value = getValue($key, $connections->import, $row);
+
+				if ($key == "color") {
+					$new_data_value = "#$new_data_value";
+				}
 				$insert_list = "$insert_list'$new_data_value'";
 				$counter++;
 			}
 
-				// ToDO: colors must have # before
-		}
+			// ToDO: colors must have # before
 
 			$query = $insert_base.$insert_values.$insert_v.$insert_list." );";
 
@@ -176,17 +180,19 @@ function copyItemsToExportDatabase($connections, $step_count, $old_table_name, $
 			if ($res === false) {
 				echo "Wrong SQL: " . $query . "\n Error: " . $connections->import->error . "\n";
 			}
+
 			else {
 				echo "Done.\n";
 				$data_success++;
 			}
-
-			// If this operation has finished
-			echo "\n---\n\n$data_success" . ' out of '. $data_total .' total items converted.'."\n";
 		}
-	else {
+
+		// If this operation has finished
+		echo "\n---\n\n$data_success" . ' out of '. $data_total .' total items converted.'."\n";
+		}
+		else {
 		echo "Something went wrong. :/";
-	}
+		}
 }
 // runs a single non-copy SQL Line
 function runExportSqlCommand($step_count, $connections, $sql_command) {
