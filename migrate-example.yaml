@@ -10,7 +10,7 @@ authentification:
     host: <DB_HOST>
     name: <DB-NAME>
     user: <DB-USER>
-    password: <DB-PASSWORD>  
+    password: <DB-PASSWORD>
 steps:
 - action: COPY
   enabled: true
@@ -67,4 +67,3 @@ steps:
 - action: RUN_COMMAND
   enabled: true
   command: DELETE FROM fl_users WHERE password='NULL'
-
