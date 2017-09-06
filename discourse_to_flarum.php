@@ -94,6 +94,10 @@ function execute_command($step_count, $connections, $config_part) {
     $command = $config_part['command'];
     runExportSqlCommand($step_count, $connections, $command); }
 
+	else if ($action == "FIRST_AND_LAST") {
+		setFirstAndLast($step_count, $connections, $config_part);
+	}
+
 	else {
 		// Other action types are currently not supported
     echo "Unknown action type: $action"; }
@@ -164,13 +168,11 @@ function copyItemsToExportDatabase($connections, $step_count, $old_table_name, $
 				$new_data_value = getValue($key, $connections->import, $row);
 
 				if ($key == "color") {
-					$new_data_value = "#$new_data_value";
+					$new_data_value = randomColor();
 				}
 				$insert_list = "$insert_list'$new_data_value'";
 				$counter++;
 			}
-
-			// ToDO: colors must have # before
 
 			$query = $insert_base.$insert_values.$insert_v.$insert_list." );";
 
@@ -208,6 +210,13 @@ function runExportSqlCommand($step_count, $connections, $sql_command) {
 	if ($res === false) {
 		echo "Wrong SQL: " . $sql_command . " Error: " . $connections->import->error . "\n"; }
 }
+// Sort of start_post_id and last_post_id
+function setFirstAndLast($step_count, $connections, $config_part) {
+	if ($config_part['enabled'] == False) {
+		return;
+	}
+	$sql = "SELECT id, discussion_id FROM $config_part['table']";
+ }
 // Removes any syntax elements and returns the raw key
 function getKey($orginal) {
 	return findFirstArg($orginal, array("?", "+", "-", "*"));
