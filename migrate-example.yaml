@@ -11,7 +11,21 @@ authentification:
     name: <DB-NAME>
     user: <DB-USER>
     password: <DB-PASSWORD>
+
 steps:
+- action: COPY
+  enabled: true
+  old-table: categories
+  new-table: fl_tags
+  columns:
+    id: id
+    name: name
+    color: color
+    position: position
+    parent_category_id: parent_id
+    slug: slug
+    description: description
+
 - action: COPY
   enabled: true
   old-table: posts
@@ -26,6 +40,10 @@ steps:
 - action: RUN_COMMAND
   enabled: true
   command: UPDATE fl_posts SET type='comment'
+- action: RUN_COMMAND
+  enabled: true
+  command: DELETE FROM fl_posts WHERE user_id='-1'
+
 - action: COPY
   enabled: true
   old-table: topics
@@ -41,18 +59,18 @@ steps:
     last_post_user_id: last_user_id
     slug: slug
     archetype?private_message: is_private
+- action: RUN_COMMAND
+  enabled: true
+  command: DELETE FROM fl_discussions WHERE title='Backup completed successfully'
+
 - action: COPY
-  enable: true
-  old-table: categories
-  new-table: fl_tags
+  enabled: true
+  old-table: topics
+  new-table: fl_discussions_tags
   columns:
-    id: id
-    name: name
-    slug: slug
-    description: description
-    rnd_color**: color
-    position: position
-    parent_category_id: parent_id
+    id: discussion_id
+    category_id: tag_id
+
 - action: COPY
   enabled: true
   old-table: users
