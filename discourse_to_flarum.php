@@ -215,8 +215,37 @@ function setFirstAndLast($step_count, $connections, $config_part) {
 	if ($config_part['enabled'] == False) {
 		return;
 	}
-	$sql = "SELECT id, discussion_id FROM $config_part['table']";
- }
+	$sql = "SELECT "."id, discussion_id FROM ".$config_part['from-table'];
+	$result = $connections->import->query($sql);
+	if (!$result) {
+		die("Error with SQL query:\n $sql\n"); }
+
+	$sorted = array();
+
+	while ($row = $result->fetch_assoc()) {
+		if ( array_key_exists ((string)$row['discussion_id'], $sorted) ) {
+			if ($row['id'] < $sorted[(string)$row['discussion_id']]['low']) {
+				$sorted[(string)$row['discussion_id']]['low'] = $row['id'];
+			}
+			else if ($row['id'] > $sorted[(string)$row['discussion_id']]['high']) {
+				$sorted[(string)$row['discussion_id']]['high'] = $row['id'];
+			}
+			else {
+				continue;
+			}
+		}
+		else {
+			$sorted[(string)$row['discussion_id']] = array();
+			$sorted[(string)$row['discussion_id']]['low'] = $row['id'];
+			$sorted[(string)$row['discussion_id']]['high'] = $row['id'];
+		}
+
+		foreach ($sorted as $key => $value) {
+			print_r($key."\n");
+			print_r($value);
+		}
+	}
+}
 // Removes any syntax elements and returns the raw key
 function getKey($orginal) {
 	return findFirstArg($orginal, array("?", "+", "-", "*"));
