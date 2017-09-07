@@ -196,7 +196,7 @@ function copyItemsToExportDatabase($connections, $step_count, $old_table_name, $
 		echo "Something went wrong. :/";
 		}
 }
-// runs a single non-copy SQL Line
+// runs a single non-copy$connections->import->query($sql) SQL Line
 function runExportSqlCommand($step_count, $connections, $sql_command) {
 	// Check connection
 	if ($connections->import->connect_error) {
@@ -239,10 +239,13 @@ function setFirstAndLast($step_count, $connections, $config_part) {
 			$sorted[(string)$row['discussion_id']]['low'] = $row['id'];
 			$sorted[(string)$row['discussion_id']]['high'] = $row['id'];
 		}
-
-		foreach ($sorted as $key => $value) {
-			print_r($key."\n");
-			print_r($value);
+	}
+	foreach ($sorted as $disc => $post) {
+		$sql = "UPDATE ".(string)$config_part['table']." SET start_post_id = ".(string)$post['low'].", last_post_id = ".(string)$post['high']." WHERE id = ".(string)$disc;
+		echo $sql;
+		$res = $connections->import->query($sql);
+		if ($res === false) {
+			echo "Wrong SQL: " . $query . "\n Error: " . $connections->import->error . "\n";
 		}
 	}
 }
