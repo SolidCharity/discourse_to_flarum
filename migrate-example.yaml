@@ -63,6 +63,12 @@ steps:
   enabled: true
   command: DELETE FROM fl_discussions WHERE title='Backup completed successfully'
 
+- action: FIRST_AND_LAST
+  enabled: true
+  table: fl_discussions
+  from-table: fl_posts
+  start_post_id: last_post_id
+
 - action: COPY
   enabled: true
   old-table: topics

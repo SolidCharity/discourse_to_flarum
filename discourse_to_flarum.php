@@ -77,9 +77,6 @@ function execute_command($step_count, $connections, $config_part) {
 	if ($enabled == false) {
 		return; }
 
-  $old_table = $config_part['old-table'];
-	$new_table = $config_part['new-table'];
-
 	$action = $config_part['action'];
 
 	if ($action == "COPY") {
@@ -92,10 +89,15 @@ function execute_command($step_count, $connections, $config_part) {
 
 	else if ($action == "RUN_COMMAND") {
     $command = $config_part['command'];
-    runExportSqlCommand($step_count, $connections, $command); }
+    runExportSqlCommand($step_count, $connections, $command);
+	}
 
 	else if ($action == "FIRST_AND_LAST") {
 		setFirstAndLast($step_count, $connections, $config_part);
+	}
+
+	else if ($action == "SET_PARENT_TAGS") {
+		setParentIds($connections, $config_part);
 	}
 
 	else {
@@ -170,6 +172,9 @@ function copyItemsToExportDatabase($connections, $step_count, $old_table_name, $
 				if ($key == "color") {
 					$new_data_value = randomColor();
 				}
+				if ($key == "parent_id") {
+					return setParentIds($connections, $convert_data, $new_table_name);
+				}
 				$insert_list = "$insert_list'$new_data_value'";
 				$counter++;
 			}
@@ -242,7 +247,7 @@ function setFirstAndLast($step_count, $connections, $config_part) {
 	}
 	foreach ($sorted as $disc => $post) {
 		$sql = "UPDATE ".(string)$config_part['table']." SET start_post_id = ".(string)$post['low'].", last_post_id = ".(string)$post['high']." WHERE id = ".(string)$disc;
-		echo $sql;
+		echo $sql."\n";
 		$res = $connections->import->query($sql);
 		if ($res === false) {
 			echo "Wrong SQL: " . $query . "\n Error: " . $connections->import->error . "\n";
@@ -329,6 +334,7 @@ function formatText($connection, $text) {
 	$text = implode("\n", $explodedText);
 
 	$wrapTag = strpos($text, '&gt;') > 0 ? "r" : "t"; // Posts with quotes need to be 'richtext'
+	$wrapTag = "r"; // To make links work
 	$text = sprintf('<%s>%s</%s>', $wrapTag, $text, $wrapTag);
 	return $connection->real_escape_string($text);
 }
@@ -344,8 +350,10 @@ function convertBBCodeToHTML($bbcode) {
 	$bbcode = preg_replace('#\[pre](.+?)\[\/pre]#is', "<code>$1<code>", $bbcode);
 	$bbcode = preg_replace('#\[\*](.+?)\[\/\*]#is', "<li>$1</li>", $bbcode);
 	$bbcode = preg_replace('#\[color=\#\w+](.+?)\[\/color]#is', "$1", $bbcode);
-	$bbcode = preg_replace('#\[url=(.+?)](.+?)\[\/url]#is', "<a href='$1'>$2</a>", $bbcode);
-	$bbcode = preg_replace('#\[url](.+?)\[\/url]#is', "<a href='$1'>$1</a>", $bbcode);
+	$bbcode = preg_replace('#\<a href\=\"(.*?)\" .*? .*?\>.*?<\/a\>#', ' <URL url="$1">$1</URL> ', $bbcode);
+	$bbcode = preg_replace('#\<a href\=\"(.*?)\"\>.*?<\/a\>#', ' <URL url="$1">$1</URL> ', $bbcode);
+	$bbcode = preg_replace('#\[url=(.+?)](.+?)\[\/url]#is', ' <URL url="$1">$1</URL> ', $bbcode);
+	$bbcode = preg_replace('#\[url](.+?)\[\/url]#is', ' <URL url="$1">$1</URL> ', $bbcode);
 	$bbcode = preg_replace('#\[list](.+?)\[\/list]#is', "<ul>$1</ul>", $bbcode);
 
 	$bbcode = preg_replace('#\[size=200](.+?)\[\/size]#is', "<h1>$1</h1>", $bbcode);
@@ -409,7 +417,6 @@ function fixUserLinks($post) {
 	}
 
 }
-
 // Returns the length of the user-name by the given text
 function getLengthOfUsername($username) {
 	$count = 0;
@@ -426,7 +433,6 @@ function getLengthOfUsername($username) {
 	}
 	return $count;
 }
-
 // This function will replace the code highlighting from the old forum format to the new one
 function fixCodeHighlighting($post) {
 	// For single line markdowns
@@ -449,6 +455,36 @@ function fixCodeHighlighting($post) {
 		}
 	}
 	return $result;
+}
+// Sets Discussion Tag Parents to all tags
+function setParentIds($connections, $config_part) {
+	$from = $config_part['from'];
+	$into = $config_part['into'];
+
+	$dump = array();
+
+	$sql_base = "SELECT "."id, parent_id ";
+	$sql_back = "FROM $from";
+	$sql_req = $sql_base.$sql_back;
+	echo "Exporting: $sql_req \n";
+
+	$result = $connections->import->query($sql_req);
+	print_r($result);
+	if ($result === false) {
+		die("Error with SQL query:\n $sql\n");
+	}
+	while ($row = $result->fetch_assoc()) {
+		if ($row['parent_id'] == null) {
+			continue;
+		}
+		$new = "INSERT INTO "."fl_discussions_tags ( discussion_id, tag_id ) VALUES ( ".$row['parent_id']." ".$row['id'].")";
+		print_r($row);
+		$result_ = $connections->import->query($new);
+
+	}
+
+
+
 }
 
 ?>
