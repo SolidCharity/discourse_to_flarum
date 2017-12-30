@@ -42,6 +42,7 @@ steps:
   command: UPDATE fl_posts SET type='comment'
 - action: RUN_COMMAND
   enabled: true
+  # -1 is the system account
   command: DELETE FROM fl_posts WHERE user_id='-1'
 
 - action: COPY
@@ -62,7 +63,6 @@ steps:
 - action: RUN_COMMAND
   enabled: true
   command: DELETE FROM fl_discussions WHERE title='Backup completed successfully'
-
 - action: FIRST_AND_LAST
   enabled: true
   table: fl_discussions
@@ -77,10 +77,42 @@ steps:
     id: discussion_id
     category_id: tag_id
 
+- action: RUN_COMMAND
+  enabled: true
+  # make all discussions private that are in category Staff
+  command: UPDATE fl_discussions d SET is_private=1 WHERE EXISTS (SELECT * FROM fl_discussions_tags dt, fl_tags t where dt.discussion_id = d.id and dt.tag_id = t.id and t.name='Staff')
+- action: RUN_COMMAND
+  enabled: true
+  # make all posts private that are in a private discussion
+  command: UPDATE fl_posts p SET is_private=1 WHERE EXISTS (SELECT * FROM fl_discussions d where d.id = p.discussion_id and d.is_private=1)
+- action: RUN_COMMAND
+  enabled: true
+  # make all posts private that are from user 0 (system user in discourse) or lower
+  command: UPDATE fl_posts p SET is_private=1 WHERE p.user_id<=0
+- action: RUN_COMMAND
+  enabled: true
+  # make all discussions private that only have private posts
+  command: UPDATE fl_discussions d SET is_private=1 WHERE NOT EXISTS (SELECT * from fl_posts p WHERE p.discussion_id = d.id and p.is_private=0)
+- action: RUN_COMMAND
+  enabled: true
+  # update discussions count of tags
+  command: UPDATE fl_tags t SET t.discussions_count = (SELECT COUNT(*) FROM fl_discussions_tags dt, fl_discussions d WHERE dt.discussion_id = d.id AND dt.tag_id = t.id AND d.is_private=0)
+- action: RUN_COMMAND
+  enabled: true
+  # make all tags invisible that have no public discussions
+  command: UPDATE fl_tags t SET is_hidden=1, is_restricted=1 WHERE t.discussions_count = 0
+
+- action: RUN_COMMAND
+  enabled: true
+  # delete the flarum admin user. the first user from discourse will be the admin
+  command: DELETE FROM fl_users WHERE id=1
+
 - action: COPY
   enabled: true
   old-table: users
   new-table: fl_users
+  where: id > 0
+  orderby: id
   columns:
     id: id
     username: username
@@ -88,6 +120,12 @@ steps:
     password_hash: password
     created_at: join_time
     last_posted_at: last_seen_time
+- action: RUN_COMMAND
+  enabled: true
+  command: UPDATE fl_users u SET discussions_count=(SELECT count(*) FROM fl_discussions d WHERE d.is_private=0 AND d.start_user_id=u.id)
+- action: RUN_COMMAND
+  enabled: true
+  command: UPDATE fl_users u SET comments_count=(SELECT count(*) FROM fl_posts p WHERE p.is_private=0 AND p.user_id=u.id)
 - action: RUN_COMMAND
   enabled: true
   command: DELETE FROM fl_users WHERE password='NULL'
