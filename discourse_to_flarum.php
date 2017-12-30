@@ -18,27 +18,30 @@ class connections {
 
 		$export = pg_connect("host=/var/run/postgresql port=5432 dbname=$exportDBName user=$exportusername password=$exportpassword");
 		if ($export === false) {
-			die("Export - Connection failed: " . $export->connect_error ."\n"); }
-		else {
+			die("Export - Connection failed: " . $export->connect_error ."\n");
+		} else {
 			echo "Export - Connected successfully\n";
 			pg_set_client_encoding($export, 'UNICODE');
-			printf("Current character set: %s\n", pg_client_encoding($export)); }
+			printf("Current character set: %s\n", pg_client_encoding($export));
+		}
 
 		$this->export = $export;
 
 
 		$import = new mysqli($importhost, $importusername, $importpassword, $importDBName);
 		if ($import->connect_error) {
-			die("Import - Connection failed: " . $import->connect_error. "\n"); }
-		else {
+			die("Import - Connection failed: " . $import->connect_error. "\n");
+		} else {
 			echo "Import - Connected successfully\n";
 
 			if (!$import->set_charset("utf8")) {
-					printf("Error loading character set utf8: %s\n", $import->error);
-					exit(); }
-			else { printf("Current character set: %s\n", $import->character_set_name()); }
+				printf("Error loading character set utf8: %s\n", $import->error);
+				exit();
+			} else {
+				printf("Current character set: %s\n", $import->character_set_name());
+			}
 
-		$this->import = $import;
+			$this->import = $import;
 		}
 	}
 }
@@ -58,8 +61,8 @@ function main() {
 	$connections = new connections($old_auth, $new_auth);
 
 	foreach ($config_file['steps'] as $step) {
-	        $step_count++;
-	        execute_command($step_count, $connections, $step);
+			$step_count++;
+			execute_command($step_count, $connections, $step);
 	}
 	// Done
 
@@ -80,16 +83,18 @@ function execute_command($step_count, $connections, $config_part) {
 	$action = $config_part['action'];
 
 	if ($action == "COPY") {
-    $old_table_name = $config_part['old-table'];
-    $new_table_name = $config_part['new-table'];
+		$old_table_name = $config_part['old-table'];
+		$new_table_name = $config_part['new-table'];
 		$convert_data = $config_part['columns'];
 
-		copyItemsToExportDatabase(	$connections, $step_count, $old_table_name,
-																$new_table_name, $convert_data	); }
+		copyItemsToExportDatabase(
+			$connections, $step_count, $old_table_name,
+			$new_table_name, $convert_data);
+	}
 
 	else if ($action == "RUN_COMMAND") {
-    $command = $config_part['command'];
-    runExportSqlCommand($step_count, $connections, $command);
+		$command = $config_part['command'];
+		runExportSqlCommand($step_count, $connections, $command);
 	}
 
 	else if ($action == "FIRST_AND_LAST") {
@@ -102,7 +107,8 @@ function execute_command($step_count, $connections, $config_part) {
 
 	else {
 		// Other action types are currently not supported
-    echo "Unknown action type: $action"; }
+		echo "Unknown action type: $action";
+	}
 }
 
 // Runs funtions on both connection to move data
@@ -131,7 +137,8 @@ function copyItemsToExportDatabase($connections, $step_count, $old_table_name, $
 	// Run generated sql-command
 	$result = pg_query($connections->export, $sql_req);
 	if (!$result) {
-		die("Error with SQL query:\n $sql_req\n"); }
+		die("Error with SQL query:\n $sql_req\n");
+	}
 
 	echo "\n";
 
@@ -196,16 +203,17 @@ function copyItemsToExportDatabase($connections, $step_count, $old_table_name, $
 
 		// If this operation has finished
 		echo "\n---\n\n$data_success" . ' out of '. $data_total .' total items converted.'."\n";
-		}
-		else {
+	}
+	else {
 		echo "Something went wrong. :/";
-		}
+	}
 }
 // runs a single non-copy$connections->import->query($sql) SQL Line
 function runExportSqlCommand($step_count, $connections, $sql_command) {
 	// Check connection
 	if ($connections->import->connect_error) {
-		die("Connection failed: " . $connections->import->connect_error); }
+		die("Connection failed: " . $connections->import->connect_error);
+	}
 
 	// Executing sql-command
 	echo "> $sql_command\n";
@@ -213,8 +221,10 @@ function runExportSqlCommand($step_count, $connections, $sql_command) {
 
 	// Check success
 	if ($res === false) {
-		echo "Wrong SQL: " . $sql_command . " Error: " . $connections->import->error . "\n"; }
+		echo "Wrong SQL: " . $sql_command . " Error: " . $connections->import->error . "\n";
+	}
 }
+
 // Sort of start_post_id and last_post_id
 function setFirstAndLast($step_count, $connections, $config_part) {
 	if ($config_part['enabled'] == False) {
@@ -223,7 +233,8 @@ function setFirstAndLast($step_count, $connections, $config_part) {
 	$sql = "SELECT "."id, discussion_id FROM ".$config_part['from-table'];
 	$result = $connections->import->query($sql);
 	if (!$result) {
-		die("Error with SQL query:\n $sql\n"); }
+		die("Error with SQL query:\n $sql\n");
+	}
 
 	$sorted = array();
 
@@ -264,16 +275,19 @@ function getValue($orginal, $importDbConnection, $row) {
 
 	// Increments the value by one if the syntax elements in the configuration want to have that
 	if (endsWith($orginal, "++")) {
-		$value++; }
+		$value++;
+	}
 
 	else if (endsWith($orginal, "--")) {
-		$value--; }
+		$value--;
+	}
 
 	// Check if there is an expression
 	$array = explode("?", $orginal);
 	if (sizeof($array) == 2) {
 		// The new value is "true", if the value from the old table equals to the expected value
-		$value = $array[1] == $value; }
+		$value = $array[1] == $value;
+	}
 
 	return $value;
 }
@@ -308,9 +322,9 @@ function endsWith($input, $check) {
 }
 // Waits for input in the console
 function readInputLine() {
-        $handle = fopen ("php://stdin","r");
-        $line = fgets($handle);
-        return trim($line);
+	$handle = fopen ("php://stdin","r");
+	$line = fgets($handle);
+	return trim($line);
 }
 // Returns a random generated color
 function randomColor() {
@@ -328,8 +342,9 @@ function formatText($connection, $text) {
 	// Wrap text lines with paragraph tags
 	$explodedText = explode("\n", $text);
 	foreach ($explodedText as $key => $value) {
-		if (strlen($value) > 1) // Only wrap in a paragraph tag if the line has actual text
+		if (strlen($value) > 1) {// Only wrap in a paragraph tag if the line has actual text
 			$explodedText[$key] = '<p>' . $value . '</p>';
+		}
 	}
 	$text = implode("\n", $explodedText);
 
@@ -397,23 +412,23 @@ function fixUserLinks($post) {
 			$count++;
 			if($count == 1) {
 				$result = $split;
-			continue;
+				continue;
 			}
 
 			$lenUsername = getLengthOfUsername($split);
 			if (sizeof($lenUsername) == 0) {
-			continue;
+				continue;
 			}
 			$username = substr($split, 0, $lenUsername);
 			$plain = substr($split, $lenUsername);
 
 			$result = "$result<USERMENTION id=\"-1\" username=\"$username\">@$username</USERMENTION>$plain";
-			}
-		return $result;
 		}
+		return $result;
+	}
 	catch(Exception $ex) {
-	echo "Warning: An error occurred while trying to fix user links";
-	return $post;
+		echo "Warning: An error occurred while trying to fix user links";
+		return $post;
 	}
 
 }
@@ -437,7 +452,7 @@ function getLengthOfUsername($username) {
 function fixCodeHighlighting($post) {
 	// For single line markdowns
 	$post = preg_replace("/<code(.*?)>/is", "<C><s>`</s>", $post);
-  $post = str_replace("</code>", "<e>`</e></C>", $post);
+	$post = str_replace("</code>", "<e>`</e></C>", $post);
 
 	// For code blocks with multiple line
 	$array = explode("```", $post);
