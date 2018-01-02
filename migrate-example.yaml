@@ -13,6 +13,9 @@ authentification:
     password: <DB-PASSWORD>
 
 steps:
+- action: RUN_COMMAND
+  enabled: true
+  command: DELETE FROM fl_tags WHERE id=1
 - action: COPY
   enabled: true
   old-table: categories
@@ -25,6 +28,9 @@ steps:
     parent_category_id: parent_id
     slug: slug
     description: description
+- action: RUN_COMMAND
+  enable: true
+  command: UPDATE fl_tags SET parent_id = NULL WHERE parent_id = 0
 
 - action: COPY
   enabled: true
@@ -34,7 +40,7 @@ steps:
     id: id
     user_id: user_id
     topic_id: discussion_id
-    cooked*: content
+    raw*: content
     created_at: time
     updated_at: edit_time
 - action: RUN_COMMAND
