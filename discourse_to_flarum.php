@@ -1,4 +1,7 @@
 <?php
+include __DIR__ . '/vendor/autoload.php';
+use s9e\TextFormatter\Bundles\Forum as TextFormatter;
+
 //Connection Storage
 class connections {
 	public $export = null;
@@ -49,6 +52,29 @@ class connections {
 main();
 function main() {
 	echo "Starting\n";
+
+	// init TextFormatter
+	global $parser;
+	$configurator = new s9e\TextFormatter\Configurator;
+	$configurator->plugins->load('Litedown');
+	$configurator->plugins->load('BBCodes');
+	$configurator->BBCodes->addFromRepository('CODE');
+	$configurator->BBCodes->addFromRepository('QUOTE');
+	$configurator->BBCodes->addFromRepository('B');
+	$configurator->BBCodes->addFromRepository('I');
+	$configurator->BBCodes->addFromRepository('U');
+	$configurator->BBCodes->addFromRepository('IMG');
+	$configurator->BBCodes->addFromRepository('URL');
+	$configurator->BBCodes->addFromRepository('LIST');
+
+	// see https://github.com/flarum/core/blob/master/src/Formatter/Formatter.php
+	$configurator->rootRules->enableAutoLineBreaks();
+	$configurator->Escaper;
+	$configurator->Autoemail;
+	$configurator->Autolink;
+	$configurator->tags->onDuplicate('replace');
+	extract($configurator->finalize());
+
 	// Load
 	$config_file = yaml_parse_file("migrate.yaml");
 	// Read
@@ -76,7 +102,7 @@ function main() {
 // Get command type and execute
 function execute_command($step_count, $connections, $config_part) {
 	// Check if this step is enabled
-	$enabled = $config_part['enabled'];
+	$enabled = array_key_exists('enabled', $config_part)?$config_part['enabled']:true;
 	if ($enabled == false) {
 		return; }
 
@@ -151,6 +177,12 @@ function copyItemsToExportDatabase($connections, $step_count, $old_table_name, $
 	echo "\n";
 
 	if (pg_num_rows($result)) {
+		$num_rows = pg_num_rows($result);
+		$progress_mod = 1;
+		if ($num_rows > 10) {
+			$progress_mod = $num_rows/5;
+		} 
+
 		// Start copy operation if everything is okay
 		$data_total = 0;
 		$data_success = 0;
@@ -176,7 +208,7 @@ function copyItemsToExportDatabase($connections, $step_count, $old_table_name, $
 
 			$insert_list = "";
 			$counter = 0;
-			print_r($convert_data);
+			// print_r($convert_data);
 			foreach ($convert_data as $key => $value) {
 				if ($counter != 0) {
 					$insert_list = "$insert_list, ";
@@ -185,7 +217,7 @@ function copyItemsToExportDatabase($connections, $step_count, $old_table_name, $
 				$new_data_value = getValue($key, $connections->import, $row);
 
 				if ($key == "color") {
-					$new_data_value = randomColor();
+					$new_data_value = "#".$new_data_value;
 				}
 				if ($key == "parent_id") {
 					return setParentIds($connections, $convert_data, $new_table_name);
@@ -197,20 +229,22 @@ function copyItemsToExportDatabase($connections, $step_count, $old_table_name, $
 			$query = $insert_base.$insert_values.$insert_v.$insert_list." );";
 
 			// Run generated sql-command on export database...
-			echo "Importing new item... ($data_total)\n";
+			if ($data_total % $progress_mod == 0) {
+				echo "Importing new $new_table_name item... ($data_total)\n";
+			}
 			$res = $connections->import->query($query);
 			if ($res === false) {
 				echo "Wrong SQL: " . $query . "\n Error: " . $connections->import->error . "\n";
 			}
 
 			else {
-				echo "Done.\n";
+				// echo "Done.\n";
 				$data_success++;
 			}
 		}
 
 		// If this operation has finished
-		echo "\n---\n\n$data_success" . ' out of '. $data_total .' total items converted.'."\n";
+		echo "\n---\n\n$data_success" . ' out of '. $data_total .' total $new_table_name items converted.'."\n";
 	}
 	else {
 		echo "Something went wrong. :/";
@@ -230,6 +264,7 @@ function runExportSqlCommand($step_count, $connections, $sql_command) {
 	// Check success
 	if ($res === false) {
 		echo "Wrong SQL: " . $sql_command . " Error: " . $connections->import->error . "\n";
+		die();
 	}
 }
 
@@ -274,24 +309,24 @@ function setFirstAndLast($step_count, $connections, $config_part) {
 	}
 }
 // Removes any syntax elements and returns the raw key
-function getKey($orginal) {
-	return findFirstArg($orginal, array("?", "+", "-", "*"));
+function getKey($original) {
+	return findFirstArg($original, array("?", "+", "-", "*"));
 }
 // Returns the new value, depends on the syntax elements
-function getValue($orginal, $importDbConnection, $row) {
-	$value = findValue($orginal, $importDbConnection, $row);
+function getValue($original, $importDbConnection, $row) {
+	$value = findValue($original, $importDbConnection, $row);
 
 	// Increments the value by one if the syntax elements in the configuration want to have that
-	if (endsWith($orginal, "++")) {
+	if (endsWith($original, "++")) {
 		$value++;
 	}
 
-	else if (endsWith($orginal, "--")) {
+	else if (endsWith($original, "--")) {
 		$value--;
 	}
 
 	// Check if there is an expression
-	$array = explode("?", $orginal);
+	$array = explode("?", $original);
 	if (sizeof($array) == 2) {
 		// The new value is "true", if the value from the old table equals to the expected value
 		$value = $array[1] == $value;
@@ -300,14 +335,11 @@ function getValue($orginal, $importDbConnection, $row) {
 	return $value;
 }
 // Reads the correct value from the row and sets special flags if there are any defined in the configuration
-function findValue($orginal, $importDbConnection, $row) {
-	$theKey = getKey($orginal);
+function findValue($original, $importDbConnection, $row) {
+	$theKey = getKey($original);
 
-	if ($orginal == "rnd_color**") {
-		return randomColor();
-	}
-	else if (endsWith($orginal, "*")) {
-		return formatText($importDbConnection, $row[$theKey]);
+	if (endsWith($original, "*")) {
+		return formatTextToXml($importDbConnection, $row[$theKey]);
 	}
 	else {
 		return addslashes($row[$theKey]);
@@ -328,20 +360,9 @@ function startsWith($input, $check) {
 function endsWith($input, $check) {
 	return substr($input, -strlen($check)) === $check;
 }
-// Waits for input in the console
-function readInputLine() {
-	$handle = fopen ("php://stdin","r");
-	$line = fgets($handle);
-	return trim($line);
-}
-// Returns a random generated color
-function randomColor() {
-	return '#' . str_pad(dechex(mt_rand(0, 0xFFFFFF)), 6, '0', STR_PAD_LEFT);
-}
-// Formates Strings for Flarum
+// Format Strings for Flarum
 function formatText($connection, $text) {
 	$text = preg_replace('#\:\w+#', '', $text);
-	$text = convertBBCodeToHTML($text);
 	$text = str_replace("&quot;","\"",$text);
 	$text = preg_replace('|[[\/\!]*?[^\[\]]*?]|si', '', $text);
 	$text = trimSmileys($text);
@@ -361,6 +382,27 @@ function formatText($connection, $text) {
 	$text = sprintf('<%s>%s</%s>', $wrapTag, $text, $wrapTag);
 	return $connection->real_escape_string($text);
 }
+
+// convert messages from Markup and/or BBCode into Flarum-compatible XML format
+function formatTextToXML($connection, $text) {
+	global $parser;
+
+	if (strpos($text, "`") === false && strpos($text, "<pre>") === false) {
+		if (strpos($text, "<") !== false && strpos($text, "</") !== false) {
+			// this is HTML
+			return formatText($connection, $text);
+		}
+	}
+
+	$text = str_replace("\n<pre>", "\n```", $text);
+	$text = str_replace("</pre>\n", "```\n", $text);
+	$text = $parser->parse($text);
+	$text = trimSmileys($text);
+	$text = fixUserLinks($text);
+
+	return $connection->real_escape_string($text);
+}
+
 // This function is able to convert BBCode to HTML code
 function convertBBCodeToHTML($bbcode) {
 	$bbcode = preg_replace('#\[b](.+)\[\/b]#', "<b>$1</b>", $bbcode);
@@ -368,7 +410,7 @@ function convertBBCodeToHTML($bbcode) {
 	$bbcode = preg_replace('#\[u](.+)\[\/u]#', "<u>$1</u>", $bbcode);
 
 	$bbcode = preg_replace('#\[img](.+?)\[\/img]#is', "<img src='$1'\>", $bbcode);
-	$bbcode = preg_replace('#\[quote=(.+?)](.+?)\[\/quote]#is', "<QUOTE><i>&gt;</i>$2</QUOTE>", $bbcode);
+	$bbcode = preg_replace('#\[quote=(.+?)](.+?)\[\/quote]#is', "<BLOCKQUOTE><i>&gt;</i>$2</BLOCKQUOTE>", $bbcode);
 	$bbcode = preg_replace('#\[code:\w+](.+?)\[\/code:\w+]#is', "<CODE class='hljs'>$1<CODE>", $bbcode);
 	$bbcode = preg_replace('#\[pre](.+?)\[\/pre]#is', "<code>$1<code>", $bbcode);
 	$bbcode = preg_replace('#\[\*](.+?)\[\/\*]#is', "<li>$1</li>", $bbcode);
@@ -424,13 +466,14 @@ function fixUserLinks($post) {
 			}
 
 			$lenUsername = getLengthOfUsername($split);
-			if (sizeof($lenUsername) == 0) {
+			if ($lenUsername == 0) {
+				$result .= '@ '.$split;
 				continue;
 			}
 			$username = substr($split, 0, $lenUsername);
 			$plain = substr($split, $lenUsername);
 
-			$result = "$result<USERMENTION id=\"-1\" username=\"$username\">@$username</USERMENTION>$plain";
+			$result .= "<USERMENTION id=\"-1\" username=\"$username\">@$username</USERMENTION>$plain";
 		}
 		return $result;
 	}

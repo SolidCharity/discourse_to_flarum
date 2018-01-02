@@ -1,0 +1,5 @@
+{
+    "require": {
+        "s9e/text-formatter": "^0.13.1"
+    }
+}

@@ -1,1 +1,3 @@
 migrate.yaml
+vendor
+composer.lock

@@ -19,7 +19,8 @@ WARNINGS:
 3. Make sure PHP and the required libraries are installed.
 4. Download script and configuration. (migrate.yaml)
 5. Configure your export- and import databases.
-6. Run the script and press 'ENTER' to start the first migration step.
+6. install TextFormatter with composer: composer require s9e/text-formatter
+7. Run the script and press 'ENTER' to start the first migration step.
 
 ## Required Libraries
 
