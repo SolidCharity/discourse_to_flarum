@@ -135,3 +135,7 @@ steps:
 - action: RUN_COMMAND
   enabled: true
   command: DELETE FROM fl_users WHERE password='NULL'
+- action: SET_PARENT_TAGS
+  enabled: true
+  from: fl_tags
+  into: fl_discussion_tags

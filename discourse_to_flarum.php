@@ -387,7 +387,7 @@ function formatText($connection, $text) {
 function formatTextToXML($connection, $text) {
 	global $parser;
 
-	if (strpos($text, "`") === false && strpos($text, "<pre>") === false) {
+	if (strpos($text, "`") === false && strpos($text, "<pre>") === false && strpos($text, "\n    ") === false) {
 		if (strpos($text, "<") !== false && strpos($text, "</") !== false) {
 			// this is HTML
 			return formatText($connection, $text);
@@ -529,23 +529,28 @@ function setParentIds($connections, $config_part) {
 
 	$dump = array();
 
-	$sql_base = "SELECT "."id, parent_id ";
-	$sql_back = "FROM $from";
+	$sql_base = "SELECT id, parent_id ";
+	$sql_back = "FROM fl_tags ORDER BY id DESC";
 	$sql_req = $sql_base.$sql_back;
 	echo "Exporting: $sql_req \n";
 
-	$result = $connections->import->query($sql_req);
-	print_r($result);
-	if ($result === false) {
-		die("Error with SQL query:\n $sql\n");
+	$result_tags = $connections->import->query($sql_req);
+	if ($result_tags === false) {
+		die("Error with SQL query:\n $sql_req\n");
 	}
-	while ($row = $result->fetch_assoc()) {
-		if ($row['parent_id'] == null) {
+	while ($tag = $result_tags->fetch_assoc()) {
+		if ($tag['parent_id'] == null) {
 			continue;
 		}
-		$new = "INSERT INTO "."fl_discussions_tags ( discussion_id, tag_id ) VALUES ( ".$row['parent_id']." ".$row['id'].")";
-		print_r($row);
-		$result_ = $connections->import->query($new);
+		$sql = "SELECT discussion_id FROM fl_discussions_tags WHERE tag_id = ".$tag['id'];
+		$result_disctags = $connections->import->query($sql);
+		if ($result_disctags === false) {
+			die("error with SQL query:\n $sql");
+		}
+		while ($disctags = $result_disctags->fetch_assoc()) {
+			$new = "INSERT INTO "."fl_discussions_tags ( discussion_id, tag_id ) VALUES ( ".$disctags['discussion_id'].", ".$tag['parent_id'].")";
+			$result_ = $connections->import->query($new);
+		}
 
 	}
 
