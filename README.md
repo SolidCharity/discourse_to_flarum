@@ -1,6 +1,6 @@
 # Project
 
-This php-script will migrate a Discourse-Forum to Flarum.
+This php script will migrate a Discourse-Forum to Flarum.
 
 ## Features
 
@@ -10,7 +10,7 @@ This php-script will migrate a Discourse-Forum to Flarum.
 
 WARNINGS:
 - Not able to import user passwords.
-- Cannot migrate discussion-tags correctly.
+- Cannot migrate uploaded media yet.
 
 ## Usage Instructions
 
@@ -29,8 +29,7 @@ The following libraries need to be installed to run this script:
 
 ## Download
 
-The sources are available there:
-[Download latest release](https://github.com/Crusader99/discourse_to_flarum/archive/master.zip)
+The sources are available at: https://github.com/TBits/discourse_to_flarum
 
 ## Example Configuration
 
@@ -149,5 +148,5 @@ Modified versions by:
 
 ## License
 
-This script is licensed under the [MIT license](https://github.com/Crusader99/discourse_to_flarum/blob/master/LICENSE)
+This script is licensed under the [MIT license](LICENSE)
 
