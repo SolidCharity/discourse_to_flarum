@@ -2,15 +2,15 @@
 ---
 authentification:
   old-database:
-    host: <DB_HOST>
-    name: <DB-NAME>
-    user: <DB-USER>
-    password: <DB-PASSWORD>
+    host: localhost
+    name: discourse
+    user: discourse
+    password: discourse
   new-database:
-    host: <DB_HOST>
-    name: <DB-NAME>
-    user: <DB-USER>
-    password: <DB-PASSWORD>
+    host: localhost
+    name: flarum
+    user: flarum
+    password: flarum
 
 steps:
 - action: RUN_COMMAND
