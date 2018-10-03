@@ -1,0 +1,30 @@
+Tests for BBCode
+
+[b]strong[/b]
+[i]emphasis[/i]
+[u]underlined[/u]
+[s]strikethrough[/s]
+
+[ul][li]option one[/li][/ul]
+
+[quote="eviltrout"][/quote]
+
+[img]http://eviltrout.com/eviltrout.png[/img]
+[url]http://bettercallsaul.com[/url]
+[email]eviltrout@mailinator.com[/email]
+[code]\nx++\n[/code]
+
+
+[b]this text is bold[/b]
+
+[i]this text is italic[/i]
+
+[u]this text is underlined[/u]
+
+[size=+2]this text is two sizes larger than normal[/size]
+
+[color=red]this is red[/color]
+
+[left]value[/left]
+[center]value[/center]
+[right]value[/right]

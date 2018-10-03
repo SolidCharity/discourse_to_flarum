@@ -1,0 +1,28 @@
+Tests with discourse formatting
+
+* item 1
+* item 2
+
+<pre>
+// my code
+#include&lt;stdio.h&gt;
+int main()
+{
+  printf("Hello World\n");
+  return 0;
+}
+</pre>
+
+Indent Text
+
+> Blockquote
+
+Link to Google: [Here](https://www.google.com)
+
+<h1>Heading h1</h1>
+<h2>Heading h2</h2>
+<h3>Heading h3</h3>
+<h4>Heading h4</h4>
+
+Image:
+![](/uploads/default/original/1X/862a9863ac83c34de606f15752dac9ff97248d43.png)
