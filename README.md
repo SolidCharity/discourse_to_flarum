@@ -33,79 +33,7 @@ The sources are available at: https://github.com/TBits/discourse_to_flarum
 
 ## Example Configuration
 
-```yaml
-
-#yaml-migration-config
----
-authentification:
-  old-database:
-    host: localhost
-    name: discourse
-    user: discourse
-    password: secret
-  new-database:
-    host: localhost
-    name: flarum
-    user: flarum
-    password: secret
-steps:
-- action: COPY
-  enabled: true
-  old-table: posts
-  new-table: fl_posts
-  columns:
-    id: id
-    user_id: user_id
-    topic_id: discussion_id
-    cooked*: content
-    created_at: time
-    updated_at: edit_time
-- action: RUN_COMMAND
-  enabled: true
-  command: UPDATE fl_posts SET type='comment'
-- action: COPY
-  enabled: true
-  old-table: topics
-  new-table: fl_discussions
-  columns:
-    id: id
-    title: title
-    posts_count++: comments_count
-    participant_count: participants_count
-    created_at: start_time
-    user_id: start_user_id
-    updated_at: last_time
-    last_post_user_id: last_user_id
-    slug: slug
-    archetype?private_message: is_private
-- action: COPY
-  enable: true
-  old-table: categories
-  new-table: fl_tags
-  columns:
-    id: id
-    name: name
-    slug: slug
-    description: description
-    rnd_color**: color
-    position: position
-    parent_category_id: parent_id
-- action: COPY
-  enabled: true
-  old-table: users
-  new-table: fl_users
-  columns:
-    id: id
-    username: username
-    email: email
-    password_hash: password
-    created_at: join_time
-    last_posted_at: last_seen_time
-- action: RUN_COMMAND
-  enabled: true
-  command: DELETE FROM fl_users WHERE password='NULL'
-
-```
+see [migrate-example.yaml](migrate-example.yaml)
 
 ## Installation on CentOS-7:
 
@@ -134,7 +62,7 @@ steps:
  
  su postgres
    cat /tmp/dump.sql | psql discourse
-   grant all privileges on all tables in schema public  to discourse;
+   grant all privileges on all tables in schema public to discourse;
 ```
 
 ## Authors
