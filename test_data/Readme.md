@@ -23,3 +23,5 @@ sudo -u discourse pg_dump discourse | gzip &gt; /shared/postgres_backup/discours
 ```
 
 You find the result on your host machine, in directory /var/discourse/shared/standalone/postgres_backup.
+
+For a detailed blog post, see https://www.pokorra.de/2018/10/creating-a-test-database-for-discourse-with-dummy-data/
