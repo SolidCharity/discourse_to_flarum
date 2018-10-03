@@ -1,6 +1,6 @@
 ---
 # run with this command:
-# ansible-playbook ansible_flarum.yml -u root -e working_host=192.168.122.52
+# ansible-playbook flarum.yml -u root -e working_host=192.168.122.52
 
 - hosts: localhost
   connection: local
