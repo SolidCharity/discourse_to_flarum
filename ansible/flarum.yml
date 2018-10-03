@@ -1,0 +1,85 @@
+---
+# run with this command:
+# ansible-playbook ansible_flarum.yml -u root -e working_host=192.168.122.52
+
+- hosts: localhost
+  connection: local
+  tasks:
+  - add_host:
+      name: "{{ working_host }}"
+      groups: working_group
+    changed_when: false
+
+- hosts: working_group
+  vars:
+    flarum_dbpwd: flarum
+    discourse_dbpwd: discourse
+  tasks:
+   - name: Install Epel and Yum Utils
+     yum:
+       name: epel-release,yum-utils
+       state: latest
+
+   - name: Install Remi Repo
+     yum:
+       name: http://rpms.remirepo.net/enterprise/remi-release-7.rpm
+       state: present
+
+   - name: Enable Remi PHP 7.1
+     shell: yum-config-manager --enable remi-php71 && touch ~/.ansible_EnabledRemiPHP70
+     args:
+       creates: ~/.ansible_EnabledRemiPHP70
+
+   - name: Install httpd,php7,git,mysql,postgresql,composer
+     yum:
+       name: httpd,php71-php,php71-php-mysqli,php71-php-mbstring,php71-php-pgsql,php71-php-dom,git,phpPgAdmin,postgresql-server,mariadb-server,mariadb,phpmyadmin,composer,php-pecl-yaml
+       state: latest
+
+   ###
+
+   - name: start MariaDB
+     systemd:
+      name: mariadb
+      state: started
+      enabled: yes
+
+   - name: create mysql db
+     shell: |
+        echo "CREATE DATABASE flarum;" | mysql -u root
+        echo "GRANT ALL ON flarum.* TO flarum@localhost IDENTIFIED BY '{{ flarum_dbpwd }}';" | mysql -u root
+        touch ~/.ansible_DoneMysqlDatabaseCreated
+     args:
+       chdir: /root
+       creates: ~/.ansible_DoneMysqlDatabaseCreated
+
+   - name: allow htaccess for Flarum
+     replace:
+      path: /etc/httpd/conf/httpd.conf
+      regexp: '(<Directory "/var/www/html">[^<]*)AllowOverride [Nn]one'
+      replace: '\1AllowOverride All'
+
+   - name: start Apache
+     systemd:
+      name: httpd
+      state: started
+      enabled: yes
+
+   ###
+
+   - name: Setup Flarum
+     shell: |
+        composer create-project flarum/flarum . --stability=beta || exit -1
+        cp -R vendor/components/font-awesome/fonts assets/
+        chmod 0775 /var/www/html
+        chmod 0775 /var/www/html/assets
+        chmod -R 0775 /var/www/html/storage
+        chgrp -R apache /var/www/html/storage
+        chgrp -R apache /var/www/html
+        chgrp -R apache /var/www/html/assets
+        touch ~/.ansible_DoneFlarumInstalled
+     args:
+       chdir: /var/www/html/
+       creates: ~/.ansible_DoneFlarumInstalled
+
+# now go to the container in your webbrowser, and start the installation by providing the database credentials etc.
+# database server: localhost, database name: flarum, database user: flarum, password: flarum

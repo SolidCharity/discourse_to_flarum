@@ -1,3 +1,4 @@
 migrate.yaml
 vendor
 composer.lock
+*.retry
