@@ -112,12 +112,13 @@ function execute_command($step_count, $connections, $config_part) {
 		$old_table_name = $config_part['old-table'];
 		$new_table_name = $config_part['new-table'];
 		$convert_data = $config_part['columns'];
+		$join = (array_key_exists('join', $config_part)?$config_part['join']:'');
 		$where = (array_key_exists('where', $config_part)?$config_part['where']:'');
 		$orderby = (array_key_exists('orderby', $config_part)?$config_part['orderby']:'');
 
 		copyItemsToExportDatabase(
 			$connections, $step_count, $old_table_name,
-			$new_table_name, $where, $orderby, $convert_data);
+			$new_table_name, $join, $where, $orderby, $convert_data);
 	}
 
 	else if ($action == "RUN_COMMAND") {
@@ -140,7 +141,7 @@ function execute_command($step_count, $connections, $config_part) {
 }
 
 // Runs funtions on both connections to move data
-function copyItemsToExportDatabase($connections, $step_count, $old_table_name, $new_table_name, $where, $orderby, $convert_data) {
+function copyItemsToExportDatabase($connections, $step_count, $old_table_name, $new_table_name, $join, $where, $orderby, $convert_data) {
 	// Convert & copy data
 	$counter = 0;
 
@@ -160,7 +161,12 @@ function copyItemsToExportDatabase($connections, $step_count, $old_table_name, $
 	}
 	$sql_back = " FROM $old_table_name";
 	$sql_req = $sql_base.$sql_keys.$sql_back;
-	if (!empty($where)) {
+	if (!empty($join)) {
+		$sql_req .= $join;
+		if (!empty($where)) {
+			$sql_req .= " AND ".$where;
+		}
+	} else if (!empty($where)) {
 		$sql_req .= " WHERE ".$where;
 	}
 	if (!empty($orderby)) {

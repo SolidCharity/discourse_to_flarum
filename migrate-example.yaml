@@ -117,14 +117,15 @@ steps:
   enabled: true
   old-table: users
   new-table: fl_users
-  where: id > 0
-  orderby: id
+  join: ' u, user_emails um WHERE user_id=u.id AND "primary"=true'
+  where: u.id > 0
+  orderby: u.id
   columns:
-    id: id
+    u.id: id
     username: username
     email: email
     password_hash: password
-    created_at: join_time
+    u.created_at: join_time
     last_posted_at: last_seen_time
 - action: RUN_COMMAND
   enabled: true
