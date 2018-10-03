@@ -1,0 +1,138 @@
+---
+# run with this command:
+# ansible-playbook migration.yml -u root -e working_host=192.168.122.52
+# this playbook expects that ansible-playbook flarum.yml has been run already
+
+- hosts: localhost
+  connection: local
+  tasks:
+  - add_host:
+      name: "{{ working_host }}"
+      groups: working_group
+    changed_when: false
+
+- hosts: working_group
+  vars:
+    flarum_dbpwd: flarum
+    discourse_dbpwd: discourse
+  tasks:
+
+   - name: Install required packages
+     yum:
+       name: git,phpPgAdmin,postgresql-server,phpmyadmin,php-pecl-yaml
+       state: latest
+
+   - git:
+      repo: https://github.com/TBits/discourse_to_flarum.git
+      dest: /root/flarummigration
+      force: yes
+
+   ###
+
+   - copy:
+       src: ../test_data/discourse.sql.gz
+       dest: /tmp
+
+   - copy:
+       src: ../test_data/flarum.sql.gz
+       dest: /root
+
+   ###
+   - name: Unpack and load mysql db
+     shell: |
+        gunzip -c flarum.sql.gz  | mysql -u flarum flarum -p'{{ flarum_dbpwd }}' || exit -1
+        touch ~/.ansible_DoneMysqlDatabaseImported
+     args:
+       chdir: /root
+       creates: ~/.ansible_DoneMysqlDatabaseImported
+
+   - name: copy flarum config.php and insert password and url
+     template:
+        src: flarum.config.php
+        dest: /var/www/html/config.php
+        owner: apache
+        group: apache
+        mode: 0644
+
+   ###
+   - name: Initiate Postgresql database
+     command: postgresql-setup initdb
+        creates=/var/lib/pgsql/data/pg_hba.conf
+
+   - name: start Postgresql
+     systemd:
+      name: postgresql
+      state: started
+      enabled: yes
+
+   - name: create PostgreSQL User
+     shell: |
+       su postgres -c "psql -q -c \"CREATE USER \\\"discourse\\\" PASSWORD '{{ discourse_dbpwd }}'\"" || exit -1
+       touch ~/.ansible_DoneCreatePGUser
+     args:
+       creates: ~/.ansible_DoneCreatePGUser
+  
+   - name: create PostgreSQL DB
+     shell: |
+       su postgres -c "createdb --encoding=UTF-8 --owner=discourse --template=template0 discourse" || exit -1
+       touch ~/.ansible_DoneCreatePGDB
+     args:
+       creates: ~/.ansible_DoneCreatePGDB
+
+   - name: load postgresql database
+     shell: |
+        su postgres -c "gunzip -c /tmp/discourse.sql.gz | psql discourse" || exit -1
+        su postgres -c "psql discourse -c \"grant all privileges on all tables in schema public to discourse;\""
+        touch ~/.ansible_DonePostgresqlDatabaseLoaded
+     args:
+       chdir: /root
+       creates: ~/.ansible_DonePostgresqlDatabaseLoaded
+
+   ###
+   - name: allow access to phpmyadmin
+     replace:
+        path: /etc/httpd/conf.d/phpMyAdmin.conf
+        regexp: '^.*Require ip 127.0.0.1'
+        replace: 'Require all granted'
+        
+   - name: allow access to phpPgAdmin
+     replace:
+        path: /etc/httpd/conf.d/phpPgAdmin.conf
+        regexp: '^.*#Require host example.com'
+        replace: 'Require all granted'
+
+   - name: allow permission for discourse database by user apache
+     lineinfile:
+       path: /var/lib/pgsql/data/pg_ident.conf
+       line: 'discourse    apache      discourse'
+   - name: allow permission for discourse database by user root
+     lineinfile:
+       path: /var/lib/pgsql/data/pg_ident.conf
+       line: 'discourse    root      discourse'
+   - name: allow to connect locally via peer
+     lineinfile:
+       path: /var/lib/pgsql/data/pg_hba.conf
+       line: 'local    all            all                            peer'
+       insertbefore: BOF
+   - name: allow to connect via ident
+     lineinfile:
+       path: /var/lib/pgsql/data/pg_hba.conf
+       line: 'local    discourse      discourse                               ident map=discourse'
+       insertbefore: BOF
+
+   # $conf['servers'][0]['defaultdb']
+   - name: make sure phpPgAdmin connects to discourse database
+     replace:
+       path: /etc/phpPgAdmin/config.inc.php
+       regexp: 'template1'
+       replace: 'discourse'
+
+   - name: restart Postgresql
+     systemd:
+      name: postgresql
+      state: restarted
+
+   - name: start Apache
+     systemd:
+      name: httpd
+      state: restarted

@@ -13,7 +13,6 @@
 - hosts: working_group
   vars:
     flarum_dbpwd: flarum
-    discourse_dbpwd: discourse
   tasks:
    - name: Install Epel and Yum Utils
      yum:
@@ -30,9 +29,9 @@
      args:
        creates: ~/.ansible_EnabledRemiPHP70
 
-   - name: Install httpd,php7,git,mysql,postgresql,composer
+   - name: Install required packages
      yum:
-       name: httpd,php71-php,php71-php-mysqli,php71-php-mbstring,php71-php-pgsql,php71-php-dom,git,phpPgAdmin,postgresql-server,mariadb-server,mariadb,phpmyadmin,composer,php-pecl-yaml
+       name: httpd,php71-php,php71-php-mysqli,php71-php-mbstring,php71-php-pgsql,php71-php-dom,mariadb-server,mariadb,composer
        state: latest
 
    ###
