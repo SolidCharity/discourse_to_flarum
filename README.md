@@ -16,14 +16,14 @@ WARNINGS:
 
 ## Usage Instructions
 
-1. Create a fresh forum using the standard install instructions. You can use the ansible playbook [ansible/flarum.yml](flarum.yml) like this:
+1. Create a fresh forum using the standard install instructions. You can use the ansible playbook [flarum.yml](ansible/flarum.yml) like this:
 
 ```
 # assuming that 192.168.122.52 is the IP address of your container dedicated for the migration
 ansible-playbook flarum.yml -u root -e working_host=192.168.122.52
 ```
 
-2. Install PostgreSQL and load your Discourse backup. You can use the ansible playbook [ansible/migration.yml](migration.yml) like this:
+2. Install PostgreSQL and load your Discourse backup. You can use the ansible playbook [migration.yml](ansible/migration.yml) like this:
 
 ```
 ansible-playbook migration.yml -u root -e working_host=192.168.122.52
@@ -64,7 +64,7 @@ php discourse_to_flarum.php
 
 ## Installation on CentOS-7:
 
-(see the Ansible playbook linked above, which does the installation for you...)
+(see the Ansible playbook [migration.yml](ansible/migration.yml), which does the installation for you...)
 
 
 ```
