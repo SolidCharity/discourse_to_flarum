@@ -12,6 +12,8 @@ authentification:
     user: flarum
     password: flarum
 
+flarum_table_prefix: "fl_"
+
 steps:
 - action: RUN_COMMAND
   enabled: true

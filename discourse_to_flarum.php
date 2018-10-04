@@ -51,6 +51,7 @@ class connections {
 
 main();
 function main() {
+	global $fl_prefix;
 	echo "Starting\n";
 
 	// init TextFormatter
@@ -77,9 +78,12 @@ function main() {
 
 	// Load
 	$config_file = yaml_parse_file("migrate.yaml");
+
 	// Read
+	$fl_prefix = $config_file['flarum_table_prefix'];
 	$old_auth = $config_file['authentification']['old-database'];
 	$new_auth = $config_file['authentification']['new-database'];
+
 	// Run all steps for forum migration...
 	echo "Run steps...\n";
 	$step_count = 0;
@@ -101,6 +105,8 @@ function main() {
 
 // Get command type and execute
 function execute_command($step_count, $connections, $config_part) {
+	global $fl_prefix;
+
 	// Check if this step is enabled
 	$enabled = array_key_exists('enabled', $config_part)?$config_part['enabled']:true;
 	if ($enabled == false) {
@@ -110,7 +116,7 @@ function execute_command($step_count, $connections, $config_part) {
 
 	if ($action == "COPY") {
 		$old_table_name = $config_part['old-table'];
-		$new_table_name = $config_part['new-table'];
+		$new_table_name = str_replace("fl_", $fl_prefix, $config_part['new-table']);
 		$convert_data = $config_part['columns'];
 		$join = (array_key_exists('join', $config_part)?$config_part['join']:'');
 		$where = (array_key_exists('where', $config_part)?$config_part['where']:'');
@@ -122,7 +128,7 @@ function execute_command($step_count, $connections, $config_part) {
 	}
 
 	else if ($action == "RUN_COMMAND") {
-		$command = $config_part['command'];
+		$command = str_replace("fl_", $fl_prefix, $config_part['command']);
 		runExportSqlCommand($step_count, $connections, $command);
 	}
 
@@ -276,10 +282,11 @@ function runExportSqlCommand($step_count, $connections, $sql_command) {
 
 // Sort of start_post_id and last_post_id
 function setFirstAndLast($step_count, $connections, $config_part) {
+	global $fl_prefix;
 	if ($config_part['enabled'] == False) {
 		return;
 	}
-	$sql = "SELECT "."id, discussion_id FROM ".$config_part['from-table'];
+	$sql = "SELECT "."id, discussion_id FROM ".str_replace("fl_", $fl_prefix, $config_part['from-table']);
 	$result = $connections->import->query($sql);
 	if (!$result) {
 		die("Error with SQL query:\n $sql\n");
@@ -534,13 +541,14 @@ function fixCodeHighlighting($post) {
 }
 // Sets Discussion Tag Parents to all tags
 function setParentIds($connections, $config_part) {
+	global $fl_prefix;
 	$from = $config_part['from'];
 	$into = $config_part['into'];
 
 	$dump = array();
 
 	$sql_base = "SELECT id, parent_id ";
-	$sql_back = "FROM fl_tags ORDER BY id DESC";
+	$sql_back = "FROM ".$fl_prefix."tags ORDER BY id DESC";
 	$sql_req = $sql_base.$sql_back;
 	echo "Exporting: $sql_req \n";
 
@@ -552,13 +560,13 @@ function setParentIds($connections, $config_part) {
 		if ($tag['parent_id'] == null) {
 			continue;
 		}
-		$sql = "SELECT discussion_id FROM fl_discussions_tags WHERE tag_id = ".$tag['id'];
+		$sql = "SELECT discussion_id FROM ".$fl_prefix."discussions_tags WHERE tag_id = ".$tag['id'];
 		$result_disctags = $connections->import->query($sql);
 		if ($result_disctags === false) {
 			die("error with SQL query:\n $sql");
 		}
 		while ($disctags = $result_disctags->fetch_assoc()) {
-			$new = "INSERT INTO "."fl_discussions_tags ( discussion_id, tag_id ) VALUES ( ".$disctags['discussion_id'].", ".$tag['parent_id'].")";
+			$new = "INSERT INTO ".$fl_prefix."discussions_tags ( discussion_id, tag_id ) VALUES ( ".$disctags['discussion_id'].", ".$tag['parent_id'].")";
 			$result_ = $connections->import->query($new);
 		}
 
