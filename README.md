@@ -18,37 +18,49 @@ WARNINGS:
 
 1. Create a fresh forum using the standard install instructions. You can use the ansible playbook [ansible/flarum.yml](flarum.yml) like this:
 
-    # assuming that 192.168.122.52 is the IP address of your container dedicated for the migration
-    ansible-playbook flarum.yml -u root -e working_host=192.168.122.52
+```
+# assuming that 192.168.122.52 is the IP address of your container dedicated for the migration
+ansible-playbook flarum.yml -u root -e working_host=192.168.122.52
+```
 
 2. Install PostgreSQL and load your Discourse backup. You can use the ansible playbook [ansible/migration.yml](migration.yml) like this:
 
-    ansible-playbook migration.yml -u root -e working_host=192.168.122.52
+```
+ansible-playbook migration.yml -u root -e working_host=192.168.122.52
+```
 
 3. The migration.yml playbook already downloads the migration script to /root/flarummigration inside the container
 4. Install the required composer packages:
 
-    cd /root/flarummigration
-    composer update
+```
+cd /root/flarummigration
+composer update
+```
 
 4. Copy the migrate-example.yaml to migrate.yaml, and modify the database credentials if they are configured differently than by the ansible playbooks. Replace the flarum prefix in the migrate.yml file
 
-    cd /root/flarummigration
-    cp migrate-example.yaml migrate.yaml
-    # perhaps you need to modify the database credentials in migrate.yaml if you have your own setup
-    # if your prefix is not fl_ for the flarum tables
-    sed -i "s/fl_//g" migrate.yaml
+```
+cd /root/flarummigration
+cp migrate-example.yaml migrate.yaml
+# perhaps you need to modify the database credentials in migrate.yaml if you have your own setup
+# if your prefix is not fl_ for the flarum tables
+sed -i "s/fl_//g" migrate.yaml
+```
 
 5. Run the script
 
-    cd /root/flarummigration
-    php discourse_to_flarum.php
+```
+cd /root/flarummigration
+php discourse_to_flarum.php
+```
 
 6. After modifications to either discourse_to_flarum.php or migrate.yaml, you can reset the flarum database and rerun the migration:
 
-    cd /root/flarummigration
-    zcat ../flarum.sql.gz | mysql -u flarum flarum -p
-    php discourse_to_flarum.php
+```
+cd /root/flarummigration
+zcat ../flarum.sql.gz | mysql -u flarum flarum -p
+php discourse_to_flarum.php
+```
 
 ## Installation on CentOS-7:
 
