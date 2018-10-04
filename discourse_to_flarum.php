@@ -348,6 +348,10 @@ function findValue($original, $importDbConnection, $row) {
 		return formatTextToXml($importDbConnection, $row[$theKey]);
 	}
 	else {
+		if (!array_key_exists($theKey, $row) && strpos($theKey, '.') !== false) {
+			$theKey = substr($theKey, strpos($theKey, '.')+1);
+		}
+
 		return addslashes($row[$theKey]);
 	}
 }
