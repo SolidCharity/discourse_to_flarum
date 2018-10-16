@@ -260,7 +260,7 @@ function copyItemsToExportDatabase($connections, $step_count, $old_table_name, $
 		}
 
 		// If this operation has finished
-		echo "\n---\n\n$data_success" . ' out of '. $data_total .' total $new_table_name items converted.'."\n";
+		echo "\n---\n\n$data_success" . ' out of '. $data_total ." total $new_table_name items converted."."\n";
 	}
 	else {
 		echo "Something went wrong. :/";
