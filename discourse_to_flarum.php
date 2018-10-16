@@ -210,9 +210,9 @@ function copyItemsToExportDatabase($connections, $step_count, $old_table_name, $
 			$counter = 0;
 			foreach ($convert_data as $key => $value) {
 				if ($counter != 0) {
-					$insert_values = "$insert_values, ";
+					$insert_values .= ", ";
 				}
-				$insert_values = "$insert_values $value";
+				$insert_values .= $value;
 				$counter++;
 			}
 
@@ -234,7 +234,11 @@ function copyItemsToExportDatabase($connections, $step_count, $old_table_name, $
 				if ($key == "parent_id") {
 					return setParentIds($connections, $convert_data, $new_table_name);
 				}
-				$insert_list = "$insert_list'$new_data_value'";
+				if ((strlen($new_data_value) == 0) && (strpos($value, "_time") !== false)) {
+					$insert_list .= "NULL";
+				} else {
+					$insert_list .= "'$new_data_value'";
+				}
 				$counter++;
 			}
 
