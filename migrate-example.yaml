@@ -38,6 +38,8 @@ steps:
   enabled: true
   old-table: posts
   new-table: fl_posts
+  # ignore posts by discourse system account, user_id is -1
+  join: ' WHERE user_id >= 0'
   columns:
     id: id
     user_id: user_id
@@ -48,10 +50,6 @@ steps:
 - action: RUN_COMMAND
   enabled: true
   command: UPDATE fl_posts SET type='comment'
-- action: RUN_COMMAND
-  enabled: true
-  # -1 is the system account
-  command: DELETE FROM fl_posts WHERE user_id='-1'
 
 - action: COPY
   enabled: true
