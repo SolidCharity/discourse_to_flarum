@@ -242,7 +242,10 @@ function copyItemsToExportDatabase($connections, $step_count, $old_table_name, $
 					$insert_list .= "NULL";
 				} else if ((strlen($new_data_value) == 0) && (strpos($value, "is_") === 0)) {
 					$insert_list .= "false";
-				} else if ($value == "content") {
+				} else if ($value == "content" || $value == "title") {
+					if (($value == "title") && (strlen($new_data_value) > 200)){
+						$new_data_value = substr($new_data_value, 0, 195)."...";
+					}
 					$insert_list.="?";
 					$params[] = $new_data_value;
 				} else {
