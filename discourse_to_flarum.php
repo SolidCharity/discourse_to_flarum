@@ -30,19 +30,19 @@ class connections {
 
 		$this->export = $export;
 
+		try {
+			$import = new PDO("mysql:host=".$importhost.";dbname=".$importDBName.";charset=utf8", $importusername, $importpassword,
+				// workaround for PHP < 5.3.6; see https://stackoverflow.com/a/21373793
+				array(PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8"));
+		} catch (PDOException $e) {
+			echo "Error establishing import connection: " . $e->getMessage() . "\n";
+			$import = null;
+		}
 
-		$import = new mysqli($importhost, $importusername, $importpassword, $importDBName);
-		if ($import->connect_error) {
-			die("Import - Connection failed: " . $import->connect_error. "\n");
+		if (!$import) {
+			die("Import - Connection failed\n");
 		} else {
 			echo "Import - Connected successfully\n";
-
-			if (!$import->set_charset("utf8")) {
-				printf("Error loading character set utf8: %s\n", $import->error);
-				exit();
-			} else {
-				printf("Current character set: %s\n", $import->character_set_name());
-			}
 
 			$this->import = $import;
 		}
@@ -98,7 +98,8 @@ function main() {
 
 	// Close connection to the database
 	pg_close($connections->export);
-	$connections->import->close();
+	unset($connections->import);
+	$connections->import = null;
 
 	echo "\n---\n\nMigration completely done! :3\n\n";
 }
@@ -219,6 +220,7 @@ function copyItemsToExportDatabase($connections, $step_count, $old_table_name, $
 			$insert_v = " ) VALUES (";
 
 			$insert_list = "";
+			$params = array();
 			$counter = 0;
 			// print_r($convert_data);
 			foreach ($convert_data as $key => $value) {
@@ -238,6 +240,9 @@ function copyItemsToExportDatabase($connections, $step_count, $old_table_name, $
 					$insert_list .= "0";
 				} else if ((strlen($new_data_value) == 0) && (strpos($value, "_time") !== false)) {
 					$insert_list .= "NULL";
+				} else if ($value == "content") {
+					$insert_list.="?";
+					$params[] = $new_data_value;
 				} else {
 					$insert_list .= "'$new_data_value'";
 				}
@@ -250,11 +255,11 @@ function copyItemsToExportDatabase($connections, $step_count, $old_table_name, $
 			if ($data_total % $progress_mod == 0) {
 				echo "Importing new $new_table_name item... ($data_total)\n";
 			}
-			$res = $connections->import->query($query);
-			if ($res === false) {
-				echo "Wrong SQL: " . $query . "\n Error: " . $connections->import->error . "\n";
+			$stmt = $connections->import->prepare($query);
+			if (!$stmt->execute($params)) {
+				echo "Wrong SQL: " . $query . "\n Error: " .  $stmt->errorCode(). ": ". print_r($stmt->errorInfo(),true) . "\n";
+				die();
 			}
-
 			else {
 				// echo "Done.\n";
 				$data_success++;
@@ -271,8 +276,8 @@ function copyItemsToExportDatabase($connections, $step_count, $old_table_name, $
 // runs a single non-copy$connections->import->query($sql) SQL Line
 function runExportSqlCommand($step_count, $connections, $sql_command) {
 	// Check connection
-	if ($connections->import->connect_error) {
-		die("Connection failed: " . $connections->import->connect_error);
+	if (!$connections->import) {
+		die("Connection not established.");
 	}
 
 	// Executing sql-command
@@ -293,14 +298,14 @@ function setFirstAndLast($step_count, $connections, $config_part) {
 		return;
 	}
 	$sql = "SELECT "."id, discussion_id FROM ".str_replace("fl_", $fl_prefix, $config_part['from-table']);
-	$result = $connections->import->query($sql);
-	if (!$result) {
+	$stmt = $connections->import->query($sql);
+	if (!$stmt) {
 		die("Error with SQL query:\n $sql\n");
 	}
 
 	$sorted = array();
 
-	while ($row = $result->fetch_assoc()) {
+	while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
 		if ( array_key_exists ((string)$row['discussion_id'], $sorted) ) {
 			if ($row['id'] < $sorted[(string)$row['discussion_id']]['low']) {
 				$sorted[(string)$row['discussion_id']]['low'] = $row['id'];
@@ -324,6 +329,7 @@ function setFirstAndLast($step_count, $connections, $config_part) {
 		$res = $connections->import->query($sql);
 		if ($res === false) {
 			echo "Wrong SQL: " . $query . "\n Error: " . $connections->import->error . "\n";
+			die();
 		}
 	}
 }
@@ -423,7 +429,7 @@ function formatTextToXML($connection, $text) {
 	$text = trimSmileys($text);
 	$text = fixUserLinks($text);
 
-	return $connection->real_escape_string($text);
+	return $text;
 }
 
 // This function is able to convert BBCode to HTML code
@@ -562,7 +568,7 @@ function setParentIds($connections, $config_part) {
 	if ($result_tags === false) {
 		die("Error with SQL query:\n $sql_req\n");
 	}
-	while ($tag = $result_tags->fetch_assoc()) {
+	while ($tag = $result_tags->fetch(PDO::FETCH_ASSOC)) {
 		if ($tag['parent_id'] == null) {
 			continue;
 		}
