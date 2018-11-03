@@ -236,6 +236,9 @@ function copyItemsToExportDatabase($connections, $step_count, $old_table_name, $
 				if ($key == "parent_id") {
 					return setParentIds($connections, $convert_data, $new_table_name);
 				}
+				if ($value == 'last_user_id' && $new_data_value == -1) {
+					$new_data_value = 0;
+				}
 				if ((strlen($new_data_value) == 0) && endsWith($value, "_id")) {
 					$insert_list .= "0";
 				} else if ((strlen($new_data_value) == 0) && (strpos($value, "_time") !== false)) {
