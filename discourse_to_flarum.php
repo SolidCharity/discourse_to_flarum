@@ -31,9 +31,9 @@ class connections {
 		$this->export = $export;
 
 		try {
-			$import = new PDO("mysql:host=".$importhost.";dbname=".$importDBName.";charset=utf8", $importusername, $importpassword,
+			$import = new PDO("mysql:host=".$importhost.";dbname=".$importDBName.";charset=utf8mb4", $importusername, $importpassword,
 				// workaround for PHP < 5.3.6; see https://stackoverflow.com/a/21373793
-				array(PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8"));
+				array(PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4"));
 		} catch (PDOException $e) {
 			echo "Error establishing import connection: " . $e->getMessage() . "\n";
 			$import = null;
@@ -409,7 +409,7 @@ function formatText($connection, $text) {
 	$wrapTag = strpos($text, '&gt;') > 0 ? "r" : "t"; // Posts with quotes need to be 'richtext'
 	$wrapTag = "r"; // To make links work
 	$text = sprintf('<%s>%s</%s>', $wrapTag, $text, $wrapTag);
-	return $connection->real_escape_string($text);
+	return $text;
 }
 
 // convert messages from Markup and/or BBCode into Flarum-compatible XML format
