@@ -55,6 +55,8 @@ steps:
   enabled: true
   old-table: topics
   new-table: fl_discussions
+  # ignore posts by discourse system account, user_id is -1
+  join: ' WHERE user_id >= 0'
   columns:
     id: id
     title: title
