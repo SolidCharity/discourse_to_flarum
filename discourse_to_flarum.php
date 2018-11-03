@@ -240,6 +240,8 @@ function copyItemsToExportDatabase($connections, $step_count, $old_table_name, $
 					$insert_list .= "0";
 				} else if ((strlen($new_data_value) == 0) && (strpos($value, "_time") !== false)) {
 					$insert_list .= "NULL";
+				} else if ((strlen($new_data_value) == 0) && (strpos($value, "is_") === 0)) {
+					$insert_list .= "false";
 				} else if ($value == "content") {
 					$insert_list.="?";
 					$params[] = $new_data_value;
